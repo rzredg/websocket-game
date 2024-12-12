@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+    <title>Multiplayer Arena</title>
+    <style>
+        @font-face {
+            font-family: 'Pixel';
+            src: url('fonts/Pixel.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'Samurai';
+            src: url('fonts/Samurai.ttf') format('truetype');
+        }
+        /* Basic styling for layout and game elements */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Pixel';
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-image: url(Images/background.jpg);
+            background-size: cover;
+            background-repeat: no-repeat;
+            height: 100vh;
+        }
+        canvas {
+            border: 2px solid #333;
+            background-color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        #status {
+            margin: 10px 0;
+            font-weight: bold;
+            color: #555;
+        }
+        #game-management {
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        #game-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            margin-top: 10px;
+        }
+        #game-list div {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.2s;
+        }
+        #game-list div:hover {
+            background-color: #f5f5f5;
+        }
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        #game-exit-section {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 100;
+            display: none; /* Initially hidden */
+        }
+        #exit-game {
+            background-color: #f44336;  /* Red color for exit */
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        #exit-game:hover {
+            background-color: #d32f2f;
+        }
+        /* Chat Styles */
+        #chat-container {
+            position: absolute;
+            overflow: hidden;
+            bottom: 10px;
+            left: 10px;
+            width: 300px;
+            background-color: rgba(255, 255, 255, 0.5);
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            display: block;
+        }
+        #chat-header {
+            display: grid;
+            overflow: hidden;
+            grid-template-columns: 1fr auto;
+            height: 35px;
+            background-color: rgba(0, 0, 0, 0.25);
+            transition: height 0.5s ease-out;
+        }
+        #chat-header.hidden {
+            height: 0;
+        }
+        #chat-header-text {
+            margin-left: 2em;
+            justify-self: center;
+        }
+        #close-chat-btn {
+            font-family: 'Samurai';
+            font-size: 1.25em;
+            background-color: rgba(255, 255, 255, 0.4);
+            align-self: center;
+            margin-right: 10px;
+            height: 30px;
+            width: 30px;
+            border-radius: 5px;
+            border: none;
+        }
+        #close-chat-btn:hover {
+            cursor: pointer;
+            background-color: rgba(0, 0, 0, 0.25);
+            color: rgb(186, 185, 185)
+        }
+        #close-chat-btn:active {
+            background-color: black;
+            color: white;
+        }
+        #chat-messages {
+            height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            padding-top: 0;
+            border-bottom: 1px solid #eee;
+            box-sizing: border-box;
+            transition: height 0.5s ease-out;
+        }
+        #chat-messages.hidden {
+            height: 0;
+        }
+        #chat-messages::-webkit-scrollbar {
+            width: 0.5em;
+            background-color: rgba(0, 0, 0, 0);
+        }
+        #chat-messages::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.25);
+            border-radius: 8px;
+            outline: 1px solid slategrey;
+        }
+        #chat-messages::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+        #chat-messages::-webkit-scrollbar-thumb:active {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        #chat-input-container {
+            display: flex;
+            padding: 10px;
+        }
+        #chat-input {
+            flex-grow: 1;
+            margin-right: 10px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #chat-send {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .chat-message {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        .chat-message .username {
+            font-weight: bold;
+            margin-right: 5px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <!-- Status message for connection and game state -->
+    <div id="status">Connecting to game server...</div>
+    
+    <!-- Game Management Section -->
+    <div id="game-management">
+        <!-- Game List Section -->
+        <div id="game-list-section">
+            <h3>Available Games</h3>
+            <button id="refresh-games" class="btn">Refresh Games</button>
+            <div id="game-list"></div>
+        </div>
+
+        <!-- Game Creation Section -->
+        <div id="game-creation">
+            <h3>Create New Game</h3>
+            <input type="text" id="game-name" placeholder="Game Name" maxlength="20">
+            <button id="create-game" class="btn">Create Game</button>
+        </div>
+    </div>
+
+    <!-- Add Chat Container -->
+    <div id="chat-container">
+        <div id="chat-header">
+            <h2 id="chat-header-text">Chat</h2>
+            <button id="close-chat-btn">X</button>
+        </div>
+        <div id="chat-messages" tabindex="0"></div>
+        <div id="chat-input-container">
+            <input type="text" id="chat-input" placeholder="Type a message...">
+            <button id="chat-send">Send</button>
+        </div>
+    </div>
+
+    <div id="game-exit-section">
+        <button id="exit-game" class="btn">Exit Game ✖</button>
+    </div>
+
+    <!-- Game Canvas - Initially hidden -->
+    <canvas id="arena" width="1200" height="800" style="display:none;"></canvas>
+    
+    <!-- Projectile script - Assume this exists from your previous setup -->
+    <script src="projectile.js"></script>
+    
+    <script type="module">
+        import GameNetworkAPI from './GameNetworkAPI.js';
+        import Arena from '/Arena.js'
+        import PlayerAnimationManager from './playerAnimationManager.js';
+        
+        // Game configuration constants
+        const CANVAS_WIDTH = 1200;
+        const CANVAS_HEIGHT = 800;
+        const PLAYER_WIDTH = 28;
+        const PLAYER_HEIGHT = 38;
+
+        // DOM Element References
+        const canvas = document.getElementById('arena');
+        const ctx = canvas.getContext('2d');
+        const statusElement = document.getElementById('status');
+        const gameListElement = document.getElementById('game-list');
+        const refreshGamesButton = document.getElementById('refresh-games');
+        const createGameButton = document.getElementById('create-game');
+        const gameNameInput = document.getElementById('game-name');
+        const gameManagementSection = document.getElementById('game-management');
+        const exitGameButton = document.getElementById('exit-game');
+        const gameExitSection = document.getElementById('game-exit-section');
+        const chatContainer = document.getElementById('chat-container');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const chatSendButton = document.getElementById('chat-send');
+
+        // Game state variables
+        let players = {}; 
+        let projectiles = []; 
+        let playerShots = [];
+        let localPlayerId = null;
+
+        // Game Network API Instance
+        const gameNetwork = new GameNetworkAPI();
+        const arena = new Arena("#arena");
+        const animatePlayer = new PlayerAnimationManager();
+
+        const chatHeader = document.getElementById('chat-header');
+        const chatMsgs = document.getElementById('chat-messages');
+        let isChatOpen = true;
+
+        document.getElementById('close-chat-btn').addEventListener("click", function() {
+            chatHeader.classList.toggle("hidden");
+            chatMsgs.classList.toggle("hidden");
+            isChatOpen = false;
+        });
+
+        document.getElementById('chat-input').addEventListener("focus", function() {
+            if (!isChatOpen) {
+                chatHeader.classList.toggle("hidden");
+                chatMsgs.classList.toggle("hidden");
+                isChatOpen = true;
+            }
+        }) ;
+
+        // Helper function to calculate projectile direction
+        function calculateProjectileDirection(direction) {
+            let x = 0, y = 0;
+            switch(direction) {
+                case 'left':  x = -6; break;
+                case 'up':    y = -6; break;
+                case 'right': x = 6;  break;
+                case 'down':  y = 6;  break;
+            }
+            return [x, y];
+        }
+
+        // Connect to game server
+        gameNetwork.connect()
+            .then(() => {
+                statusElement.textContent = 'Connected to game server';
+
+                // List available games on initial connection
+                gameNetwork.listGames();
+
+                // Event Listeners for Game Management
+                gameNetwork.addEventListener('gamesListed', (games) => {
+                    gameListElement.innerHTML = '';
+                    if (games.length === 0) {
+                        const noGamesDiv = document.createElement('div');
+                        noGamesDiv.textContent = 'No games available. Create a new game!';
+                        gameListElement.appendChild(noGamesDiv);
+                    } else {
+                        games.forEach(game => {
+                            const gameDiv = document.createElement('div');
+                            gameDiv.innerHTML = `
+                                <strong>${game.name}</strong> 
+                                (${game.players_count}/${game.max_players})
+                            `;
+                            gameDiv.addEventListener('click', () => {
+                                gameNetwork.joinGame(game.id);
+                            });
+                            gameListElement.appendChild(gameDiv);
+                        });
+                    }
+                });
+
+                // Game Creation Event
+                gameNetwork.addEventListener('gameCreated', (game) => {
+                    // Add null/undefined check
+                    const gameName = game && game.name ? game.name : 'Unnamed Game';
+                    statusElement.textContent = `Game "${game.name}" created successfully`;
+                    gameNetwork.listGames();
+                });
+
+                // Game Join Event
+                gameNetwork.addEventListener('gameJoined', (gameId) => {
+                    statusElement.textContent = `Joined game: ${gameId}`;
+                    gameManagementSection.style.display = 'none';
+                    canvas.style.display = 'block';
+
+                    // Show exit button when game is joined
+                    gameExitSection.style.display = 'block';
+                    gameExitSection.style.position = 'absolute';
+                    gameExitSection.style.top = '10px';
+                    gameExitSection.style.right = '10px';
+
+                    initializeGameplay();
+                });
+
+                // Button Event Listeners
+                refreshGamesButton.addEventListener('click', () => {
+                    gameNetwork.listGames();
+                });
+
+                createGameButton.addEventListener('click', () => {
+                    const gameName = gameNameInput.value || `Game ${Math.floor(Math.random() * 1000)}`;
+                    gameNetwork.createGame(gameName);
+                });
+
+                // Network Event Listeners for Gameplay
+                gameNetwork.addEventListener('playerJoined', (message) => {
+                    const { player_id, player } = message;
+                    players[player_id] = player;
+                    playerShots[player_id] = 0;
+                    
+                    if (localPlayerId === null) {
+                        localPlayerId = message.player_id;
+                        statusElement.textContent = `Playing as Player ${localPlayerId}`;
+                    }
+                });
+
+                // Exit Game Button Handler
+                exitGameButton.addEventListener('click', () => {
+                    gameNetwork.exitGame();
+                });
+
+                // Game Exit Listener
+                gameNetwork.addExitGameListener((playerId) => {
+                    // Reset UI
+                    statusElement.textContent = 'Returned to game lobby';
+                    canvas.style.display = 'none';
+                    gameManagementSection.style.display = 'block';
+                    gameExitSection.style.display = 'none';
+
+                    // Reset game state
+                    players = {};
+                    projectiles = [];
+                    playerShots = [];
+                    localPlayerId = null;
+
+                    // List available games again
+                    gameNetwork.listGames();
+                });
+            })
+            .catch(error => {
+                console.error('Failed to connect:', error);
+                statusElement.textContent = 'Failed to connect to game server';
+            });
+        
+        // Sends message in global chat
+        function sendChatMessage() {
+            const message = chatInput.value.trim();
+            if (message) {
+                const localPlayer = gameNetwork.getLocalPlayer();
+                const username = localPlayer 
+                    ? `Player-${localPlayer.color}` 
+                    : 'Anonymous';
+                
+                gameNetwork.sendChatMessage(message, username);
+                chatInput.value = '';
+            }
+        }
+
+        // Chat Event Listeners
+        chatSendButton.addEventListener('click', sendChatMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendChatMessage();
+        });
+
+        gameNetwork.addChatListener((chatMessage) => {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('chat-message');
+            
+            const usernameSpan = document.createElement('span');
+            usernameSpan.classList.add('username');
+            usernameSpan.textContent = chatMessage.username || 'Player';
+            const textSpan = document.createElement('span');
+            textSpan.textContent = chatMessage.text;
+            
+            messageElement.appendChild(usernameSpan);
+            messageElement.appendChild(textSpan);
+            
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        });
+        
+        // Initialize Game Gameplay
+        function initializeGameplay() {
+            // Movement state tracking
+            const keys = {
+                up:    { pressed: false },
+                left:  { pressed: false },
+                down:  { pressed: false },
+                right: { pressed: false }
+            };
+
+            gameNetwork.addEventListener('playerShot', (shotData) => {
+                const directions = calculateProjectileDirection(shotData.direction);
+                let projectile = new Projectile(
+                    shotData.playerID,
+                    shotData.player.x - 6, 
+                    shotData.player.y, 
+                    24, 
+                    shotData.player.color, 
+                    directions[0], 
+                    directions[1], 
+                    ctx
+                );
+                projectiles.push(projectile);
+                if (shotData.playerID == localPlayerId) {
+                    playerShots[localPlayerId]++;
+                }
+            });
+
+            gameNetwork.addEventListener('playerHit', (hitData) => {
+                players[hitData]['lives']--;
+            });
+
+            gameNetwork.addEventListener('playerRemoved', (removeData) =>{
+                delete players[removeData];
+            });
+
+            gameNetwork.addEventListener('gameStateUpdated', (gameState) => {
+                Object.assign(players, gameState.players);
+            });
+
+            let animationInterval = 0; // Switch frames every 100ms
+            let isMoving = false;
+            let frame = 0;
+            let lastWalkingAnimation = "";
+
+            function updatePlayerDirection(player) {
+                if (keys.up.pressed) {
+                    player.animation = "up";
+                    lastWalkingAnimation = "up";
+                } else if (keys.down.pressed) {
+                    player.animation = "down";
+                    lastWalkingAnimation = "down";
+                } else if (keys.left.pressed) {
+                    player.animation = "left";
+                    lastWalkingAnimation = "left";
+                } else if (keys.right.pressed) {
+                    player.animation = "right";
+                    lastWalkingAnimation = "right";
+                }
+            }
+
+            // Movement Update Interval
+            setInterval(() => {
+                const player = players[localPlayerId];
+                if (!player) return;
+
+                if (isMoving) {
+                    if (animationInterval == 400) animationInterval = 0;
+
+                    animatePlayer.setAnimation(player.animation);
+                    
+                    player.frame = animatePlayer.getCurrentFrame(animationInterval);
+                    animationInterval += 10;
+                    
+                } else animationInterval = 0;
+
+                const move = { dx: 0, dy: 0 };
+
+                if (keys.up.pressed && player.y > 0 && !arena.willCollide(player.x, player.y - 1, PLAYER_WIDTH, PLAYER_HEIGHT)) {
+                    move.dy = -1;   
+                }
+                if (keys.left.pressed && player.x > 0 && !arena.willCollide(player.x - 1, player.y, PLAYER_WIDTH, PLAYER_HEIGHT)) {
+                    move.dx = -1;
+                }
+                if (keys.down.pressed && player.y < CANVAS_HEIGHT - PLAYER_HEIGHT && !arena.willCollide(player.x, player.y + 1, PLAYER_WIDTH, PLAYER_HEIGHT)) {
+                    move.dy = 1;
+                }
+                if (keys.right.pressed && player.x < CANVAS_WIDTH - PLAYER_WIDTH && !arena.willCollide(player.x + 1, player.y, PLAYER_WIDTH, PLAYER_HEIGHT)) {
+                    move.dx = 1;   
+                }
+                
+                if (move.dx !== 0 || move.dy !== 0) {
+                    gameNetwork.sendMove(move.dx, move.dy, player.animation, player.frame);
+                }
+                else isMoving = false;
+            }, 8); 
+
+            // Keyboard Event Handlers
+            document.addEventListener('keydown', (e) => {
+                const player = players[localPlayerId];
+                if (!player) return;
+
+                if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight'].includes(e.key)) {
+                    isMoving = true;
+                    e.preventDefault();
+                }
+
+                if (e.key === 'ArrowUp') {
+                    keys.up.pressed = true;
+                    player.animation = "up";
+                    lastWalkingAnimation = "up";
+                } 
+                if (e.key === 'ArrowDown') {
+                    keys.down.pressed = true;
+                    player.animation = "down";
+                    lastWalkingAnimation = "down";
+                }
+                if (e.key === 'ArrowLeft') {
+                    keys.left.pressed = true;
+                    player.animation = "left";
+                    lastWalkingAnimation = "left";
+                } 
+                if (e.key === 'ArrowRight') {
+                    keys.right.pressed = true;
+                    player.animation = "right";
+                    lastWalkingAnimation = "right";
+                }
+                
+                const pShots = playerShots[localPlayerId];
+                if (e.key === 'a') {
+                    player.animation = "standleft";
+                    player.frame = 5;
+                    gameNetwork.sendShot('left', pShots);
+                }
+                if (e.key === 'w') {
+                    player.animation = "standup";
+                    player.frame = 11;
+                    gameNetwork.sendShot('up', pShots);
+                }
+                if (e.key === 's') {
+                    player.animation = "standdown";
+                    player.frame = 1;
+                    gameNetwork.sendShot('down', pShots);
+                }
+                if (e.key === 'd') {
+                    player.animation = "standright";
+                    player.frame = 11;
+                    gameNetwork.sendShot('right', pShots);
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                const player = players[localPlayerId];
+                if (!player) return;
+
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                    e.preventDefault();
+                }
+                
+                if (e.key === 'ArrowUp')    keys.up.pressed = false;
+                if (e.key === 'ArrowDown')  keys.down.pressed = false;
+                if (e.key === 'ArrowLeft')  keys.left.pressed = false;
+                if (e.key === 'ArrowRight') keys.right.pressed = false;
+
+                if (isMoving) updatePlayerDirection(player);
+                
+            });
+
+            // Rendering Function
+            function render() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                arena.drawGround();
+
+                // Draw and Update Projectiles
+                for (let i = projectiles.length - 1; i >= 0; i--) {
+                    const projectile = projectiles[i];
+                    // determine if projectile will collide w/ obstacle
+                    let willCollideWithObstacle = false; 
+                    const pRad = projectile.radius;
+                    const size = pRad * 2;
+                    if (projectile.velocityX > 0) {
+                        // collision w/ left of obstacle
+                        willCollideWithObstacle = arena.willCollide(projectile.x + 1, projectile.y + 15, size, 20);
+                    } else if (projectile.velocityX < 0) {
+                        // collision w/ right of obstacle
+                        willCollideWithObstacle = arena.willCollide(projectile.x - 1, projectile.y + 15, size, 20);
+                    } else if (projectile.velocityY > 0) {
+                        // collision w/ top of obstacle
+                        willCollideWithObstacle = arena.willCollide(projectile.x + 15, projectile.y + 1, 20, size);
+                    } else if (projectile.velocityY < 0) {
+                        // collision w/ bottom of obstacle
+                        willCollideWithObstacle = arena.willCollide(projectile.x + 15, projectile.y - 1, 20, size);
+                    }
+    
+                    // collision detection with wall, obstacles, and players
+                    let hitPlayer = projectile.willCollideWithPlayer(players);
+                    if ((0 <= projectile.x && projectile.x <= CANVAS_WIDTH) && 
+                        (0 <= projectile.y && projectile.y <= CANVAS_HEIGHT) &&
+                        !willCollideWithObstacle && hitPlayer == null) {
+                        projectile.move();
+                    } else {
+                        projectiles.splice(i, 1);
+                        if (localPlayerId === projectile.playerID) {
+                            // update player's current shots
+                            playerShots[localPlayerId]--;
+                        }
+                        if (hitPlayer != null) {
+                            // player was hit
+                            gameNetwork.sendHit(hitPlayer);
+                            break;
+                        }
+                    }
+                }
+
+                // Draw Players
+                for (const id in players) {
+                    const player = players[id];
+                    arena.draw(player);
+                    if (player.color == 'gray') arena.drawGreyHearts(player);
+                    else if (player.color == 'yellow') arena.drawYellowHearts(player);
+                    else if (player.color == 'darkred') arena.drawDarkRedHearts(player);
+                    else arena.drawGreenHearts(player);
+                }
+            }
+
+            // Start Rendering Loop
+            setInterval(render, 16);
+        }
+    </script>
+</body>
+</html>
